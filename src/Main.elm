@@ -13,9 +13,28 @@ main =
     }
 
 -- MODEL
+type ScoreBoxValue
+  = Empty
+  | Strike
+  | Value Int
+
+type ScoreBoxType
+  = SameNumber Int
+  | OfAKind Int
+  | TwoPairs
+  | SmallStright
+  | LargeStright
+  | Chance
+  | Yatzy
+
+type alias ScoreBox =
+  { boxType: ScoreBoxType
+  , values: List ScoreBoxValue
+  }
 
 type alias Player =
-  { name : String }
+  { name : String
+  }
 
 type alias Dice =
   { value: Int
@@ -24,16 +43,53 @@ type alias Dice =
   }
 
 type alias Model =
-  { dices : List Dice }
+  { dices : List Dice
+  , players: List Player
+  , upperScoreBoxes: List ScoreBox
+  , upperTotals: List ScoreBoxValue
+  , bonus: List ScoreBoxValue
+  , lowerScoreBoxes: List ScoreBox
+  , totals: List ScoreBoxValue
+  }
 
 init : (Model, Cmd Msg)
 init =
-  (Model [Dice 1 1 True
+  (Model
+    [ Dice 1 1 True
     , Dice 1 2 True
-    , Dice 1 3 False
+    , Dice 1 3 True
     , Dice 1 4 True
     , Dice 1 5 True
-    ], Cmd.none)
+    ]
+    [ Player "Tina"
+    , Player "MJ"
+    ]
+    [ ScoreBox (SameNumber 1) [Empty, Value 4]
+    , ScoreBox (SameNumber 2) [Empty, Empty]
+    , ScoreBox (SameNumber 3) [Empty, Empty]
+    , ScoreBox (SameNumber 4) [Empty, Empty]
+    , ScoreBox (SameNumber 5) [Empty, Empty]
+    , ScoreBox (SameNumber 6) [Empty, Empty]
+    ]
+    [ Empty
+    , Empty
+    ]
+    [ Empty
+    , Empty
+    ]
+    [ ScoreBox (OfAKind 2) [Strike, Empty]
+    , ScoreBox TwoPairs [Strike, Empty]
+    , ScoreBox (OfAKind 3) [Strike, Empty]
+    , ScoreBox (OfAKind 4) [Strike, Empty]
+    , ScoreBox SmallStright [Empty, Value 10]
+    , ScoreBox LargeStright [Empty, Value 10]
+    , ScoreBox Chance [Empty, Value 10]
+    , ScoreBox Yatzy [Empty, Value 10]
+    ]
+    [ Empty
+    , Empty
+    ]
+    , Cmd.none)
 
 -- UPDATE
 
@@ -75,10 +131,41 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   div []
-    [ h1 [] [text "Zatzy"]
+    [ h1 [] [text "YATZY"]
+    , table [class "p0"]
+      ([ tr []
+        ([th [class "border"] [text ""]] ++ List.map viewUser model.players)
+      ]
+      ++ List.map viewScoreBox model.upperScoreBoxes ++
+      [ tr []
+        ([th [class "border"] [text "Sum"]] ++ List.map viewScoreValue model.upperTotals)
+      , tr []
+        ([th [class "border"] [text "Bonus"]] ++ List.map viewScoreValue model.bonus)
+      ]
+      ++ List.map viewScoreBox model.lowerScoreBoxes ++
+      [ tr []
+        ([th [class "border"] [text "Total"]] ++ List.map viewScoreValue model.upperTotals)
+      ]
+      )
     , div [] (List.map viewDice model.dices)
     , button [ onClick ThrowDices] [ text "Throw"]
     ]
+
+viewUser player = th [class "border"] [text player.name]
+
+viewScoreBox scoreBox =
+  tr []
+    ([td [class "border"] [text (toString scoreBox.boxType)]]
+    ++ List.map viewScoreValue scoreBox.values)
+
+viewScoreValue scoreBoxValue =
+  td [class "border"] [scoreBoxValue |> scoreBoxValueToString |> text]
+
+scoreBoxValueToString scoreBoxValue =
+  case scoreBoxValue of
+    Empty -> ""
+    Strike -> "-"
+    Value v -> toString v
 
 viewDice : Dice -> Html Msg
 viewDice dice =

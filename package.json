@@ -8,7 +8,8 @@
     "livereload": "livereload build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "elm make src/Main.elm --output=build/yatzy.js",
-    "watch": "watch \"npm run build\" src"
+    "watch": "watch \"npm run build\" src",
+    "dev": "npm run start & npm run livereload & npm run watch"
   },
   "keywords": [],
   "author": "",
