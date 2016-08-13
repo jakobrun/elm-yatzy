@@ -24,6 +24,7 @@ type ScoreBoxType
   | TwoPairs
   | SmallStright
   | LargeStright
+  | FullHouse
   | Chance
   | Yatzy
 
@@ -51,6 +52,27 @@ type alias Model =
   , lowerScoreBoxes: List ScoreBox
   , totals: List ScoreBoxValue
   }
+
+scoreBoxLabel scoreBoxType =
+  case scoreBoxType of
+    SameNumber value ->
+      case value of
+        1 -> "Ones"
+        2 -> "Twos"
+        3 -> "Threes"
+        4 -> "Fours"
+        5 -> "Fives"
+        6 -> "Sixes"
+        _ -> "WTF!"
+    OfAKind value ->
+      case value of
+        2 -> "1 pair"
+        _ -> (toString value) ++ " of a kind"
+    TwoPairs -> "2 pairs"
+    SmallStright -> "Small stright"
+    LargeStright -> "Large stright"
+    FullHouse -> "Full house"
+    _ -> toString scoreBoxType
 
 init : (Model, Cmd Msg)
 init =
@@ -83,6 +105,7 @@ init =
     , ScoreBox (OfAKind 4) [Empty, Empty]
     , ScoreBox SmallStright [Empty, Empty]
     , ScoreBox LargeStright [Empty, Empty]
+    , ScoreBox FullHouse [Empty, Empty]
     , ScoreBox Chance [Empty, Empty]
     , ScoreBox Yatzy [Empty, Empty]
     ]
@@ -132,7 +155,7 @@ view : Model -> Html Msg
 view model =
   div []
     [ h1 [] [text "YATZY"]
-    , table [class "p0"]
+    , table []
       ([ tr []
         ([th [class "border"] [text ""]] ++ List.map viewUser model.players)
       ]
@@ -157,7 +180,7 @@ viewUser player = th [class "border"] [text player.name]
 
 viewScoreBox scoreBox =
   tr []
-    ([td [class "border"] [text (toString scoreBox.boxType)]]
+    ([td [class "border"] [text (scoreBoxLabel scoreBox.boxType)]]
     ++ List.map viewScoreValue scoreBox.values)
 
 viewScoreValue scoreBoxValue =
