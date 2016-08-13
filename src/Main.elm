@@ -64,7 +64,7 @@ init =
     [ Player "Tina"
     , Player "MJ"
     ]
-    [ ScoreBox (SameNumber 1) [Empty, Value 4]
+    [ ScoreBox (SameNumber 1) [Empty, Empty]
     , ScoreBox (SameNumber 2) [Empty, Empty]
     , ScoreBox (SameNumber 3) [Empty, Empty]
     , ScoreBox (SameNumber 4) [Empty, Empty]
@@ -77,14 +77,14 @@ init =
     [ Empty
     , Empty
     ]
-    [ ScoreBox (OfAKind 2) [Strike, Empty]
-    , ScoreBox TwoPairs [Strike, Empty]
-    , ScoreBox (OfAKind 3) [Strike, Empty]
-    , ScoreBox (OfAKind 4) [Strike, Empty]
-    , ScoreBox SmallStright [Empty, Value 10]
-    , ScoreBox LargeStright [Empty, Value 10]
-    , ScoreBox Chance [Empty, Value 10]
-    , ScoreBox Yatzy [Empty, Value 10]
+    [ ScoreBox (OfAKind 2) [Empty, Empty]
+    , ScoreBox TwoPairs [Empty, Empty]
+    , ScoreBox (OfAKind 3) [Empty, Empty]
+    , ScoreBox (OfAKind 4) [Empty, Empty]
+    , ScoreBox SmallStright [Empty, Empty]
+    , ScoreBox LargeStright [Empty, Empty]
+    , ScoreBox Chance [Empty, Empty]
+    , ScoreBox Yatzy [Empty, Empty]
     ]
     [ Empty
     , Empty
@@ -94,14 +94,14 @@ init =
 -- UPDATE
 
 type Msg
-  = ThrowDices
+  = RollDices
   | DiceResult (List Int)
   | ToggleDice Int
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    ThrowDices ->
+    RollDices ->
       (model, model.dices |> List.length |> throwNDices)
     DiceResult res ->
       ({model | dices = List.map2 diceRes model.dices res}, Cmd.none)
@@ -147,9 +147,11 @@ view model =
         ([th [class "border"] [text "Total"]] ++ List.map viewScoreValue model.upperTotals)
       ]
       )
-    , div [] (List.map viewDice model.dices)
-    , button [ onClick ThrowDices] [ text "Throw"]
+    , div [class "flex"] (List.map viewDice model.dices)
+    , button [ onClick RollDices] [ text "Roll"]
     ]
+
+viewColumn n = div [class "column"] (viewPip n)
 
 viewUser player = th [class "border"] [text player.name]
 
@@ -170,10 +172,32 @@ scoreBoxValueToString scoreBoxValue =
 viewDice : Dice -> Html Msg
 viewDice dice =
   button
-    [ class ("border inline-block rounded p2 m1 bg-white" ++ (diceStyle dice))
+    [ class ("dice rounded " ++ diceStyle dice)
     , ToggleDice dice.id |> onClick
     ]
-    [ text (toString dice.value)]
+    [ viewDiceValue dice.value]
 
 diceStyle: Dice -> String
-diceStyle dice = if dice.loose then "" else " bc-red"
+diceStyle dice = if dice.loose then "dice-loose" else "dice-pinned"
+
+viewDiceValue value
+  = case value of
+    1 -> div [class "first-face"] (viewPip 1)
+    2 -> div [class "second-face"] (viewPip 2)
+    3 -> div [class "third-face"] (viewPip 3)
+    4 -> div [class "fourth-face"]
+          [ viewColumn 2
+          , viewColumn 2
+          ]
+    5 -> div [class "fifth-face"]
+          [ viewColumn 2
+          , viewColumn 1
+          , viewColumn 2
+          ]
+    6 -> div [class "sixth-face"]
+          [ viewColumn 3
+          , viewColumn 3
+          ]
+    _ -> div [] [text "wtf!!!"]
+
+viewPip n = List.repeat n (span [class "pip"] [])
