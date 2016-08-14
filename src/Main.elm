@@ -71,6 +71,17 @@ scoreBoxLabel scoreBoxType =
     FullHouse -> "Full house"
     _ -> toString scoreBoxType
 
+countSameNumer dices =
+  List.map .value dices
+  |> List.foldr
+    (\value newList ->
+      if List.map fst newList |> List.member value then
+        List.map (\pair -> if fst pair == value then (value, (snd pair) + 1) else pair) newList
+      else
+        (value, 1) :: newList
+    )
+    []
+
 init : (Model, Cmd Msg)
 init =
   (Model
@@ -144,24 +155,44 @@ selectScoreBox box model =
       {model |
         upperScoreBoxes =
           List.map
-            (updateScoreBox box value model)
+            (updateScoreBox box model (calculateSameNumber value))
             model.upperScoreBoxes
+      }
+    OfAKind value ->
+      {model |
+        lowerScoreBoxes =
+          List.map
+            (updateScoreBox box model (calculateXOfAKind value))
+            model.lowerScoreBoxes
       }
     _ -> model
 
-updateScoreBox box value model oldBox =
+updateScoreBox box model calculateNewValue oldBox =
   if box == oldBox then
     {box | values =
       Dict.insert
         model.activePlayer
-        (List.map .value model.dices
-        |> List.filter (\v -> v == value)
-        |> List.sum
-        )
+        (calculateNewValue model.dices)
         box.values
     }
   else
     oldBox
+
+calculateXOfAKind value dices =
+  case
+    (countSameNumer dices
+      |> List.filter (\v -> value <= snd v)
+      |> List.map (\v -> (fst v) * value)
+      |> List.maximum
+    ) of
+      Nothing -> 0
+      Just v -> v
+
+calculateSameNumber value dices =
+  List.map .value dices
+  |> List.filter (\v -> v == value)
+  |> List.sum
+
 
 -- SUBSCRIPTIONS
 
