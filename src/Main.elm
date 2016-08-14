@@ -2,6 +2,7 @@ import Html exposing (..)
 import Html.App exposing (program)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Dict exposing (Dict)
 import Random
 
 main =
@@ -13,11 +14,6 @@ main =
     }
 
 -- MODEL
-type ScoreBoxValue
-  = Empty
-  | Strike
-  | Value Int
-
 type ScoreBoxType
   = SameNumber Int
   | OfAKind Int
@@ -30,7 +26,7 @@ type ScoreBoxType
 
 type alias ScoreBox =
   { boxType: ScoreBoxType
-  , values: List ScoreBoxValue
+  , values: Dict String Int
   }
 
 type alias Player =
@@ -47,10 +43,11 @@ type alias Model =
   { dices : List Dice
   , players: List Player
   , upperScoreBoxes: List ScoreBox
-  , upperTotals: List ScoreBoxValue
-  , bonus: List ScoreBoxValue
+  , upperTotals: Dict String Int
+  , bonus: Dict String Int
   , lowerScoreBoxes: List ScoreBox
-  , totals: List ScoreBoxValue
+  , totals: Dict String Int
+  , activePlayer: String
   }
 
 scoreBoxLabel scoreBoxType =
@@ -86,32 +83,27 @@ init =
     [ Player "Tina"
     , Player "MJ"
     ]
-    [ ScoreBox (SameNumber 1) [Empty, Empty]
-    , ScoreBox (SameNumber 2) [Empty, Empty]
-    , ScoreBox (SameNumber 3) [Empty, Empty]
-    , ScoreBox (SameNumber 4) [Empty, Empty]
-    , ScoreBox (SameNumber 5) [Empty, Empty]
-    , ScoreBox (SameNumber 6) [Empty, Empty]
+    [ ScoreBox (SameNumber 1) Dict.empty
+    , ScoreBox (SameNumber 2) Dict.empty
+    , ScoreBox (SameNumber 3) Dict.empty
+    , ScoreBox (SameNumber 4) Dict.empty
+    , ScoreBox (SameNumber 5) Dict.empty
+    , ScoreBox (SameNumber 6) Dict.empty
     ]
-    [ Empty
-    , Empty
+    Dict.empty
+    Dict.empty
+    [ ScoreBox (OfAKind 2) Dict.empty
+    , ScoreBox TwoPairs Dict.empty
+    , ScoreBox (OfAKind 3) Dict.empty
+    , ScoreBox (OfAKind 4) Dict.empty
+    , ScoreBox SmallStright Dict.empty
+    , ScoreBox LargeStright Dict.empty
+    , ScoreBox FullHouse Dict.empty
+    , ScoreBox Chance Dict.empty
+    , ScoreBox Yatzy Dict.empty
     ]
-    [ Empty
-    , Empty
-    ]
-    [ ScoreBox (OfAKind 2) [Empty, Empty]
-    , ScoreBox TwoPairs [Empty, Empty]
-    , ScoreBox (OfAKind 3) [Empty, Empty]
-    , ScoreBox (OfAKind 4) [Empty, Empty]
-    , ScoreBox SmallStright [Empty, Empty]
-    , ScoreBox LargeStright [Empty, Empty]
-    , ScoreBox FullHouse [Empty, Empty]
-    , ScoreBox Chance [Empty, Empty]
-    , ScoreBox Yatzy [Empty, Empty]
-    ]
-    [ Empty
-    , Empty
-    ]
+    Dict.empty
+    "Tina"
     , Cmd.none)
 
 -- UPDATE
@@ -120,6 +112,7 @@ type Msg
   = RollDices
   | DiceResult (List Int)
   | ToggleDice Int
+  | SelectScoreBox ScoreBox
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -130,6 +123,8 @@ update msg model =
       ({model | dices = List.map2 diceRes model.dices res}, Cmd.none)
     ToggleDice id ->
       ({model | dices = List.map (toggleDice id) model.dices}, Cmd.none)
+    SelectScoreBox box ->
+      (selectScoreBox box model, Cmd.none)
 
 throwNDices: Int -> Cmd Msg
 throwNDices n =
@@ -143,6 +138,31 @@ toggleDice: Int -> Dice -> Dice
 toggleDice id dice =
   if dice.id == id then {dice | loose = not dice.loose} else dice
 
+selectScoreBox box model =
+  case box.boxType of
+    SameNumber value ->
+      {model |
+        upperScoreBoxes =
+          List.map
+            (updateScoreBox box value model)
+            model.upperScoreBoxes
+      }
+    _ -> model
+
+updateScoreBox box value model oldBox =
+  if box == oldBox then
+    {box | values =
+      Dict.insert
+        model.activePlayer
+        (List.map .value model.dices
+        |> List.filter (\v -> v == value)
+        |> List.sum
+        )
+        box.values
+    }
+  else
+    oldBox
+
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
@@ -154,22 +174,24 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   div []
-    [ h1 [] [text "YATZY"]
-    , table []
-      ([ tr []
-        ([th [class "border"] [text ""]] ++ List.map viewUser model.players)
+    [ div [class "paper p2 m2 inline-block"]
+      [ h1 [] [text "YATZY"]
+      , table []
+        ([ tr []
+          ([th [class "border"] [text ""]] ++ List.map viewUser model.players)
+        ]
+        ++ List.map (viewScoreBox model.players) model.upperScoreBoxes ++
+        [ tr []
+          ([th [class "border"] [text "Sum"]] ++ List.map (viewScoreValue model.upperTotals) model.players)
+        , tr []
+          ([th [class "border"] [text "Bonus"]] ++ List.map (viewScoreValue model.bonus) model.players)
+        ]
+        ++ List.map (viewScoreBox model.players) model.lowerScoreBoxes ++
+        [ tr []
+          ([th [class "border"] [text "Total"]] ++ List.map (viewScoreValue model.upperTotals) model.players)
+        ]
+        )
       ]
-      ++ List.map viewScoreBox model.upperScoreBoxes ++
-      [ tr []
-        ([th [class "border"] [text "Sum"]] ++ List.map viewScoreValue model.upperTotals)
-      , tr []
-        ([th [class "border"] [text "Bonus"]] ++ List.map viewScoreValue model.bonus)
-      ]
-      ++ List.map viewScoreBox model.lowerScoreBoxes ++
-      [ tr []
-        ([th [class "border"] [text "Total"]] ++ List.map viewScoreValue model.upperTotals)
-      ]
-      )
     , div [class "flex"] (List.map viewDice model.dices)
     , button [ onClick RollDices] [ text "Roll"]
     ]
@@ -178,19 +200,29 @@ viewColumn n = div [class "column"] (viewPip n)
 
 viewUser player = th [class "border"] [text player.name]
 
-viewScoreBox scoreBox =
+viewScoreBox players scoreBox =
   tr []
-    ([td [class "border"] [text (scoreBoxLabel scoreBox.boxType)]]
-    ++ List.map viewScoreValue scoreBox.values)
+    (
+      [td [class "border"]
+        [ button
+          [ class "scorebox-button"
+          , onClick (SelectScoreBox scoreBox)
+          ]
+          [ text (scoreBoxLabel scoreBox.boxType)
+          ]
+        ]
+      ]
+      ++ List.map (viewScoreValue scoreBox.values) players
+    )
 
-viewScoreValue scoreBoxValue =
-  td [class "border"] [scoreBoxValue |> scoreBoxValueToString |> text]
-
-scoreBoxValueToString scoreBoxValue =
-  case scoreBoxValue of
-    Empty -> ""
-    Strike -> "-"
-    Value v -> toString v
+viewScoreValue values player =
+  td
+    [class "border"]
+    [text
+        (case Dict.get player.name values of
+          Nothing -> ""
+          Just value -> toString value)
+    ]
 
 viewDice : Dice -> Html Msg
 viewDice dice =
