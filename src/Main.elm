@@ -159,13 +159,27 @@ selectScoreBox box model =
             model.upperScoreBoxes
       }
     OfAKind value ->
-      {model |
-        lowerScoreBoxes =
-          List.map
-            (updateScoreBox box model (calculateXOfAKind value))
-            model.lowerScoreBoxes
-      }
-    _ -> model
+      updateLowerScoreBox box model (calculateXOfAKind value)
+    TwoPairs ->
+      updateLowerScoreBox box model calculateTwoPairs
+    FullHouse ->
+      updateLowerScoreBox box model calculateFullHouse
+    SmallStright ->
+      updateLowerScoreBox box model calculateSmallStright
+    LargeStright ->
+      updateLowerScoreBox box model calculateLargeStright
+    Chance ->
+      updateLowerScoreBox box model calculateChange
+    Yatzy ->
+      updateLowerScoreBox box model calculateYatzy
+
+updateLowerScoreBox box model calculateNewValue =
+    {model |
+      lowerScoreBoxes =
+        List.map
+          (updateScoreBox box model calculateNewValue)
+          model.lowerScoreBoxes
+    }
 
 updateScoreBox box model calculateNewValue oldBox =
   if box == oldBox then
@@ -178,21 +192,63 @@ updateScoreBox box model calculateNewValue oldBox =
   else
     oldBox
 
+calculateSameNumber value dices =
+  List.map .value dices
+  |> List.filter ((==) value)
+  |> List.sum
+
 calculateXOfAKind value dices =
   case
     (countSameNumer dices
-      |> List.filter (\v -> value <= snd v)
-      |> List.map (\v -> (fst v) * value)
+      |> List.filter ((<=) value << snd)
+      |> List.map ((*) value << fst)
       |> List.maximum
     ) of
       Nothing -> 0
       Just v -> v
 
-calculateSameNumber value dices =
-  List.map .value dices
-  |> List.filter (\v -> v == value)
-  |> List.sum
+calculateTwoPairs dices =
+  let pairs =
+    countSameNumer dices
+      |> List.filter ((<=) 2 << snd)
+  in
+    if List.length pairs == 2 then
+      List.map ((*) 2 << fst) pairs |> List.sum
+    else
+      0
 
+calculateSmallStright dices =
+  let faceCount =
+    countSameNumer dices
+  in
+    if (List.length faceCount) == 5 && not (List.member 6 (List.map fst faceCount))
+    then 15 else 0
+
+calculateLargeStright dices =
+  let faceCount =
+    countSameNumer dices
+  in
+    if (List.length faceCount) == 5 && not (List.member 1 (List.map fst faceCount))
+    then 20 else 0
+
+calculateFullHouse dices =
+  let faceCount =
+    countSameNumer dices
+  in
+    if List.length faceCount == 2 &&
+        (case List.head faceCount of
+                Nothing -> 0
+                Just v -> snd v
+            ) >= 3
+    then
+      List.map .value dices |> List.sum
+    else
+      0
+
+calculateChange = List.sum << List.map .value
+
+calculateYatzy dices =
+  if countSameNumer dices |> List.length |> (==) 1 then 50 else 0
 
 -- SUBSCRIPTIONS
 
