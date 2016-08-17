@@ -45,6 +45,7 @@ type alias Model =
   , upperScoreBoxes: List ScoreBox
   , lowerScoreBoxes: List ScoreBox
   , activePlayer: String
+  , rollesLeft: Int
   }
 
 scoreBoxLabel scoreBoxType =
@@ -109,6 +110,7 @@ init =
     , ScoreBox Yatzy Dict.empty
     ]
     "Tina"
+    3
     , Cmd.none)
 
 -- UPDATE
@@ -278,19 +280,23 @@ view model =
           ([th [class "border"] [text ""]] ++ List.map viewUser model.players)
         ]
         ++ List.map (viewScoreBox model.players) model.upperScoreBoxes ++
-        [ tr []
-          ([th [class "border"] [text "Sum"]] ++ List.map (viewScoreTotalValue (calculateTotalScoreBoxForPlayer model.upperScoreBoxes)) model.players)
-        , tr []
-          ([th [class "border"] [text "Bonus"]] ++ List.map (viewScoreTotalValue (calculateBonusForPlayer model)) model.players)
+        [ viewTotalRow "Sum"
+            (calculateTotalScoreBoxForPlayer model.upperScoreBoxes)
+            model
+        , viewTotalRow "Bonus"
+            (calculateBonusForPlayer model)
+            model
         ]
         ++ List.map (viewScoreBox model.players) model.lowerScoreBoxes ++
-        [ tr []
-          ([th [class "border"] [text "Total"]] ++ List.map (viewScoreTotalValue (calculateTotalForPlayer model)) model.players)
+        [ viewTotalRow "Total"
+            (calculateTotalForPlayer model)
+            model
         ]
         )
       ]
     , div [class "flex"] (List.map viewDice model.dices)
     , button [ onClick RollDices] [ text "Roll"]
+    , span [] [text (toString model.rollesLeft ++ " rolls left")]
     ]
 
 viewColumn n = div [class "column"] (viewPip n)
@@ -320,6 +326,14 @@ viewScoreValue values player =
           Nothing -> ""
           Just value -> toString value)
     ]
+
+viewTotalRow label calcFun model =
+  tr []
+    ([th [class "border"] [text label]] ++
+      List.map
+        (viewScoreTotalValue calcFun)
+        model.players
+    )
 
 viewScoreTotalValue calc player =
   th
