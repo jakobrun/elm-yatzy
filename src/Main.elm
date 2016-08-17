@@ -43,10 +43,7 @@ type alias Model =
   { dices : List Dice
   , players: List Player
   , upperScoreBoxes: List ScoreBox
-  , upperTotals: Dict String Int
-  , bonus: Dict String Int
   , lowerScoreBoxes: List ScoreBox
-  , totals: Dict String Int
   , activePlayer: String
   }
 
@@ -101,8 +98,6 @@ init =
     , ScoreBox (SameNumber 5) Dict.empty
     , ScoreBox (SameNumber 6) Dict.empty
     ]
-    Dict.empty
-    Dict.empty
     [ ScoreBox (OfAKind 2) Dict.empty
     , ScoreBox TwoPairs Dict.empty
     , ScoreBox (OfAKind 3) Dict.empty
@@ -113,7 +108,6 @@ init =
     , ScoreBox Chance Dict.empty
     , ScoreBox Yatzy Dict.empty
     ]
-    Dict.empty
     "Tina"
     , Cmd.none)
 
@@ -192,6 +186,22 @@ updateScoreBox box model calculateNewValue oldBox =
   else
     oldBox
 
+calculateTotalScoreBoxForPlayer : List ScoreBox -> Player -> Int
+calculateTotalScoreBoxForPlayer scoreBoxes player =
+  List.filterMap (Dict.get player.name << .values) scoreBoxes
+  |> List.sum
+
+calculateBonusForPlayer model player =
+  if (calculateTotalScoreBoxForPlayer model.upperScoreBoxes player) >= 63 then
+    50
+  else
+    0
+
+calculateTotalForPlayer model player =
+  (calculateTotalScoreBoxForPlayer model.upperScoreBoxes player) +
+  (calculateBonusForPlayer model player) +
+  (calculateTotalScoreBoxForPlayer model.lowerScoreBoxes player)
+
 calculateSameNumber value dices =
   List.map .value dices
   |> List.filter ((==) value)
@@ -239,7 +249,7 @@ calculateFullHouse dices =
         (case List.head faceCount of
                 Nothing -> 0
                 Just v -> snd v
-            ) >= 3
+            ) >= 2
     then
       List.map .value dices |> List.sum
     else
@@ -269,13 +279,13 @@ view model =
         ]
         ++ List.map (viewScoreBox model.players) model.upperScoreBoxes ++
         [ tr []
-          ([th [class "border"] [text "Sum"]] ++ List.map (viewScoreValue model.upperTotals) model.players)
+          ([th [class "border"] [text "Sum"]] ++ List.map (viewScoreTotalValue (calculateTotalScoreBoxForPlayer model.upperScoreBoxes)) model.players)
         , tr []
-          ([th [class "border"] [text "Bonus"]] ++ List.map (viewScoreValue model.bonus) model.players)
+          ([th [class "border"] [text "Bonus"]] ++ List.map (viewScoreTotalValue (calculateBonusForPlayer model)) model.players)
         ]
         ++ List.map (viewScoreBox model.players) model.lowerScoreBoxes ++
         [ tr []
-          ([th [class "border"] [text "Total"]] ++ List.map (viewScoreValue model.upperTotals) model.players)
+          ([th [class "border"] [text "Total"]] ++ List.map (viewScoreTotalValue (calculateTotalForPlayer model)) model.players)
         ]
         )
       ]
@@ -310,6 +320,12 @@ viewScoreValue values player =
           Nothing -> ""
           Just value -> toString value)
     ]
+
+viewScoreTotalValue calc player =
+  th
+    [class "border"]
+    [text (toString(calc player))]
+
 
 viewDice : Dice -> Html Msg
 viewDice dice =
