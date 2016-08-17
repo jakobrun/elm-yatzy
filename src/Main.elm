@@ -309,7 +309,7 @@ view model =
         ([ tr []
           ([th [class "border"] [text ""]] ++ List.map viewUser model.players)
         ]
-        ++ List.map (viewScoreBox model.players) model.upperScoreBoxes ++
+        ++ List.map (viewScoreBox model) model.upperScoreBoxes ++
         [ viewTotalRow "Sum"
             (calculateTotalScoreBoxForPlayer model.upperScoreBoxes)
             model
@@ -317,15 +317,15 @@ view model =
             (calculateBonusForPlayer model)
             model
         ]
-        ++ List.map (viewScoreBox model.players) model.lowerScoreBoxes ++
+        ++ List.map (viewScoreBox model) model.lowerScoreBoxes ++
         [ viewTotalRow "Total"
             (calculateTotalForPlayer model)
             model
         ]
         )
       ]
-    , div [class "flex"] (List.map viewDice model.dices)
-    , button [ onClick RollDices] [ text "Roll"]
+    , div [class "flex"] (List.map (viewDice (model.rollesLeft == 3)) model.dices)
+    , button [ onClick RollDices, disabled (model.rollesLeft == 0)] [ text "Roll"]
     , span [] [text (toString model.rollesLeft ++ " rolls left")]
     ]
 
@@ -333,19 +333,20 @@ viewColumn n = div [class "column"] (viewPip n)
 
 viewUser player = th [class "border"] [text player.name]
 
-viewScoreBox players scoreBox =
+viewScoreBox model scoreBox =
   tr []
     (
       [td [class "border"]
         [ button
           [ class "scorebox-button"
           , onClick (SelectScoreBox scoreBox)
+          , disabled (model.rollesLeft == 3)
           ]
           [ text (scoreBoxLabel scoreBox.boxType)
           ]
         ]
       ]
-      ++ List.map (viewScoreValue scoreBox.values) players
+      ++ List.map (viewScoreValue scoreBox.values) model.players
     )
 
 viewScoreValue values player =
@@ -371,11 +372,12 @@ viewScoreTotalValue calc player =
     [text (toString(calc player))]
 
 
-viewDice : Dice -> Html Msg
-viewDice dice =
+viewDice : Bool -> Dice -> Html Msg
+viewDice diceDisabled dice =
   button
     [ class ("dice rounded " ++ diceStyle dice)
     , ToggleDice dice.id |> onClick
+    , disabled diceDisabled
     ]
     [ viewDiceValue dice.value]
 
