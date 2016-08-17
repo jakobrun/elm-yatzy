@@ -127,11 +127,14 @@ update msg model =
     RollDices ->
       (model, model.dices |> List.length |> throwNDices)
     DiceResult res ->
-      ({model | dices = List.map2 diceRes model.dices res}, Cmd.none)
+      ({model |
+        dices = List.map2 diceRes model.dices res,
+        rollesLeft = model.rollesLeft - 1
+      }, Cmd.none)
     ToggleDice id ->
       ({model | dices = List.map (toggleDice id) model.dices}, Cmd.none)
     SelectScoreBox box ->
-      (selectScoreBox box model, Cmd.none)
+      (selectScoreBox box model |> moveToNextPlayer, Cmd.none)
 
 throwNDices: Int -> Cmd Msg
 throwNDices n =
@@ -168,6 +171,33 @@ selectScoreBox box model =
       updateLowerScoreBox box model calculateChange
     Yatzy ->
       updateLowerScoreBox box model calculateYatzy
+
+moveToNextPlayer model =
+  {model |
+    rollesLeft = 3,
+    dices = List.map (\d -> {d | loose = True}) model.dices,
+    activePlayer =
+      case nextPlayer model.activePlayer model.players of
+        Just player -> player.name
+        Nothing ->
+          case List.head model.players of
+            Just player -> player.name
+            Nothing -> model.activePlayer
+  }
+
+nextPlayer name players =
+  let
+    tailPlayers = case List.tail players of
+      Just list -> list
+      Nothing -> []
+  in
+    case List.head players of
+      Just player ->
+        if player.name == name then
+          List.head tailPlayers
+        else
+          nextPlayer name tailPlayers
+      Nothing -> Nothing
 
 updateLowerScoreBox box model calculateNewValue =
     {model |
