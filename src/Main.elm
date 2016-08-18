@@ -326,7 +326,12 @@ view model =
       ]
     , div [class "flex"] (List.map (viewDice (model.rollesLeft == 3)) model.dices)
     , button [ onClick RollDices, disabled (model.rollesLeft == 0)] [ text "Roll"]
-    , span [] [text (toString model.rollesLeft ++ " rolls left")]
+    , span []
+      [text (model.activePlayer ++
+        " has " ++
+        toString model.rollesLeft ++
+        " rolls left")
+      ]
     ]
 
 viewColumn n = div [class "column"] (viewPip n)
