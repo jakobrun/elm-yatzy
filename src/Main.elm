@@ -26,6 +26,7 @@ type ScoreBoxType
 
 type alias ScoreBox =
   { boxType: ScoreBoxType
+  , score: Int
   , values: Dict String Int
   }
 
@@ -92,22 +93,22 @@ init =
     [ Player "Tina"
     , Player "MJ"
     ]
-    [ ScoreBox (SameNumber 1) Dict.empty
-    , ScoreBox (SameNumber 2) Dict.empty
-    , ScoreBox (SameNumber 3) Dict.empty
-    , ScoreBox (SameNumber 4) Dict.empty
-    , ScoreBox (SameNumber 5) Dict.empty
-    , ScoreBox (SameNumber 6) Dict.empty
+    [ ScoreBox (SameNumber 1) 0 Dict.empty
+    , ScoreBox (SameNumber 2) 0 Dict.empty
+    , ScoreBox (SameNumber 3) 0 Dict.empty
+    , ScoreBox (SameNumber 4) 0 Dict.empty
+    , ScoreBox (SameNumber 5) 0 Dict.empty
+    , ScoreBox (SameNumber 6) 0 Dict.empty
     ]
-    [ ScoreBox (OfAKind 2) Dict.empty
-    , ScoreBox TwoPairs Dict.empty
-    , ScoreBox (OfAKind 3) Dict.empty
-    , ScoreBox (OfAKind 4) Dict.empty
-    , ScoreBox SmallStright Dict.empty
-    , ScoreBox LargeStright Dict.empty
-    , ScoreBox FullHouse Dict.empty
-    , ScoreBox Chance Dict.empty
-    , ScoreBox Yatzy Dict.empty
+    [ ScoreBox (OfAKind 2) 0 Dict.empty
+    , ScoreBox TwoPairs 0 Dict.empty
+    , ScoreBox (OfAKind 3) 0 Dict.empty
+    , ScoreBox (OfAKind 4) 0 Dict.empty
+    , ScoreBox SmallStright 0 Dict.empty
+    , ScoreBox LargeStright 0 Dict.empty
+    , ScoreBox FullHouse 0 Dict.empty
+    , ScoreBox Chance 0 Dict.empty
+    , ScoreBox Yatzy 0 Dict.empty
     ]
     "Tina"
     3
@@ -128,9 +129,9 @@ update msg model =
       (model, model.dices |> List.length |> throwNDices)
     DiceResult res ->
       ({model |
-        dices = List.map2 diceRes model.dices res,
-        rollesLeft = model.rollesLeft - 1
-      }, Cmd.none)
+        dices = List.map2 diceRes model.dices res
+      , rollesLeft = model.rollesLeft - 1
+      } |> calulateScoreBoxes, Cmd.none)
     ToggleDice id ->
       ({model | dices = List.map (toggleDice id) model.dices}, Cmd.none)
     SelectScoreBox box ->
@@ -171,6 +172,25 @@ selectScoreBox box model =
       updateLowerScoreBox box model calculateChange
     Yatzy ->
       updateLowerScoreBox box model calculateYatzy
+
+calulateScoreBoxes model =
+  {model
+  | upperScoreBoxes = List.map (calculateScoreBox model.dices) model.upperScoreBoxes
+  , lowerScoreBoxes = List.map (calculateScoreBox model.dices) model.lowerScoreBoxes
+  }
+calculateScoreBox dices box =
+  {box | score =
+    (case box.boxType of
+      SameNumber value -> calculateSameNumber value dices
+      OfAKind value -> calculateXOfAKind value dices
+      TwoPairs -> calculateTwoPairs dices
+      FullHouse -> calculateFullHouse dices
+      SmallStright -> calculateSmallStright dices
+      LargeStright -> calculateLargeStright dices
+      Chance -> calculateChange dices
+      Yatzy -> calculateYatzy dices
+    )
+  }
 
 moveToNextPlayer model =
   {model |
@@ -342,25 +362,23 @@ viewScoreBox model scoreBox =
   tr []
     (
       [td [class "border"]
-        [ button
-          [ class "scorebox-button"
-          , onClick (SelectScoreBox scoreBox)
-          , disabled (model.rollesLeft == 3)
-          ]
-          [ text (scoreBoxLabel scoreBox.boxType)
-          ]
+        [ text (scoreBoxLabel scoreBox.boxType)
         ]
       ]
-      ++ List.map (viewScoreValue scoreBox.values) model.players
+      ++ List.map (viewScoreValue model scoreBox) model.players
     )
 
-viewScoreValue values player =
+viewScoreValue model box player =
   td
     [class "border"]
-    [text
-        (case Dict.get player.name values of
-          Nothing -> ""
-          Just value -> toString value)
+    [
+        (case Dict.get player.name box.values of
+          Nothing ->
+            if player.name == model.activePlayer && model.rollesLeft /= 3 then
+              button [onClick (SelectScoreBox box)] [toString box.score |> text]
+            else
+              text ""
+          Just value -> toString value |> text)
     ]
 
 viewTotalRow label calcFun model =
