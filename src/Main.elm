@@ -3,6 +3,7 @@ import Html.App exposing (program)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Dict exposing (Dict)
+import Dice
 import Random
 
 main =
@@ -34,14 +35,8 @@ type alias Player =
   { name : String
   }
 
-type alias Dice =
-  { value: Int
-  , id: Int
-  , loose: Bool
-  }
-
 type alias Model =
-  { dices : List Dice
+  { dices : List Dice.Model
   , players: List Player
   , upperScoreBoxes: List ScoreBox
   , lowerScoreBoxes: List ScoreBox
@@ -84,11 +79,11 @@ countSameNumer dices =
 init : (Model, Cmd Msg)
 init =
   (Model
-    [ Dice 1 1 True
-    , Dice 1 2 True
-    , Dice 1 3 True
-    , Dice 1 4 True
-    , Dice 1 5 True
+    [ Dice.fromValue 1 1
+    , Dice.fromValue 1 2
+    , Dice.fromValue 1 3
+    , Dice.fromValue 1 4
+    , Dice.fromValue 1 5
     ]
     [ Player "Tina"
     , Player "MJ"
@@ -119,7 +114,7 @@ init =
 type Msg
   = RollDices
   | DiceResult (List Int)
-  | ToggleDice Int
+  | DiceMsg Dice.Msg
   | SelectScoreBox ScoreBox
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -129,25 +124,17 @@ update msg model =
       (model, model.dices |> List.length |> throwNDices)
     DiceResult res ->
       ({model |
-        dices = List.map2 diceRes model.dices res
+        dices = List.map2 Dice.setValue model.dices res
       , rollesLeft = model.rollesLeft - 1
       } |> calulateScoreBoxes, Cmd.none)
-    ToggleDice id ->
-      ({model | dices = List.map (toggleDice id) model.dices}, Cmd.none)
+    DiceMsg dMsg ->
+        ({model | dices = List.map (Dice.update dMsg) model.dices}, Cmd.none)
     SelectScoreBox box ->
       (selectScoreBox box model |> moveToNextPlayer, Cmd.none)
 
 throwNDices: Int -> Cmd Msg
 throwNDices n =
   Random.generate DiceResult (Random.list n (Random.int 1 6))
-
-diceRes: Dice -> Int -> Dice
-diceRes dice newValue =
-  if dice.loose then {dice | value = newValue} else dice
-
-toggleDice: Int -> Dice -> Dice
-toggleDice id dice =
-  if dice.id == id then {dice | loose = not dice.loose} else dice
 
 selectScoreBox box model =
   case box.boxType of
@@ -344,7 +331,7 @@ view model =
         ]
         )
       ]
-    , div [class "flex"] (List.map (viewDice (model.rollesLeft == 3)) model.dices)
+    , div [class "flex"] (List.map (viewDice model) model.dices)
     , button [ onClick RollDices, disabled (model.rollesLeft == 0)] [ text "Roll"]
     , span []
       [text (model.activePlayer ++
@@ -354,7 +341,8 @@ view model =
       ]
     ]
 
-viewColumn n = div [class "column"] (viewPip n)
+viewDice model dice =
+  Html.App.map (DiceMsg) (Dice.view (model.rollesLeft == 3) dice)
 
 viewUser player = th [class "border"] [text player.name]
 
@@ -393,38 +381,3 @@ viewScoreTotalValue calc player =
   th
     [class "border"]
     [text (toString(calc player))]
-
-
-viewDice : Bool -> Dice -> Html Msg
-viewDice diceDisabled dice =
-  button
-    [ class ("dice rounded " ++ diceStyle dice)
-    , ToggleDice dice.id |> onClick
-    , disabled diceDisabled
-    ]
-    [ viewDiceValue dice.value]
-
-diceStyle: Dice -> String
-diceStyle dice = if dice.loose then "dice-loose" else "dice-pinned"
-
-viewDiceValue value
-  = case value of
-    1 -> div [class "first-face"] (viewPip 1)
-    2 -> div [class "second-face"] (viewPip 2)
-    3 -> div [class "third-face"] (viewPip 3)
-    4 -> div [class "fourth-face"]
-          [ viewColumn 2
-          , viewColumn 2
-          ]
-    5 -> div [class "fifth-face"]
-          [ viewColumn 2
-          , viewColumn 1
-          , viewColumn 2
-          ]
-    6 -> div [class "sixth-face"]
-          [ viewColumn 3
-          , viewColumn 3
-          ]
-    _ -> div [] [text "wtf!!!"]
-
-viewPip n = List.repeat n (span [class "pip"] [])
