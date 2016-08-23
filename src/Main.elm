@@ -137,28 +137,12 @@ throwNDices n =
   Random.generate DiceResult (Random.list n (Random.int 1 6))
 
 selectScoreBox box model =
-  case box.boxType of
-    SameNumber value ->
-      {model |
-        upperScoreBoxes =
-          List.map
-            (updateScoreBox box model (calculateSameNumber value))
-            model.upperScoreBoxes
-      }
-    OfAKind value ->
-      updateLowerScoreBox box model (calculateXOfAKind value)
-    TwoPairs ->
-      updateLowerScoreBox box model calculateTwoPairs
-    FullHouse ->
-      updateLowerScoreBox box model calculateFullHouse
-    SmallStright ->
-      updateLowerScoreBox box model calculateSmallStright
-    LargeStright ->
-      updateLowerScoreBox box model calculateLargeStright
-    Chance ->
-      updateLowerScoreBox box model calculateChange
-    Yatzy ->
-      updateLowerScoreBox box model calculateYatzy
+  {model |
+    upperScoreBoxes =
+      List.map (updateScoreBox box model) model.upperScoreBoxes,
+    lowerScoreBoxes =
+      List.map (updateScoreBox box model) model.lowerScoreBoxes
+  }
 
 calulateScoreBoxes model =
   {model
@@ -206,20 +190,12 @@ nextPlayer name players =
           nextPlayer name tailPlayers
       Nothing -> Nothing
 
-updateLowerScoreBox box model calculateNewValue =
-    {model |
-      lowerScoreBoxes =
-        List.map
-          (updateScoreBox box model calculateNewValue)
-          model.lowerScoreBoxes
-    }
-
-updateScoreBox box model calculateNewValue oldBox =
+updateScoreBox box model oldBox =
   if box == oldBox then
     {box | values =
       Dict.insert
         model.activePlayer
-        (calculateNewValue model.dices)
+        box.score
         box.values
     }
   else
