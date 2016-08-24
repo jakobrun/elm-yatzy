@@ -111,7 +111,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     RollDices ->
-      (model, model.dices |> List.length |> throwNDices)
+      (model, model.dices |> List.length |> rollNDices)
     DiceResult res ->
       ({model |
         dices = List.map2 Dice.setValue model.dices res
@@ -122,8 +122,8 @@ update msg model =
     SelectScoreBox box ->
       (selectScoreBox box model |> moveToNextPlayer, Cmd.none)
 
-throwNDices: Int -> Cmd Msg
-throwNDices n =
+rollNDices: Int -> Cmd Msg
+rollNDices n =
   Random.generate DiceResult (Random.list n (Random.int 1 6))
 
 selectScoreBox box model =
