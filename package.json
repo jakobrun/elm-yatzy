@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": "4.4.2"
+  },
   "scripts": {
     "start": "node server",
     "livereload": "livereload build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "elm make src/Main.elm --output=build/yatzy.js",
     "watch": "watch \"npm run build\" src",
-    "dev": "npm run start & npm run livereload & npm run watch"
+    "dev": "npm run start & npm run livereload & npm run watch",
+    "postinstall": "npm run build"
   },
   "keywords": [],
   "author": "",
