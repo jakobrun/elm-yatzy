@@ -13,7 +13,7 @@
     "build": "./node_modules/.bin/elm make src/Main.elm --output=build/yatzy.js --yes",
     "watch": "watch \"npm run build\" src",
     "dev": "npm run start & npm run livereload & npm run watch",
-    "postinstall": "npm run build && cp node_modules/basscss/css/basscss.min.css build"
+    "postinstall": "npm run build"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +23,7 @@
     "watch": "^0.19.1"
   },
   "dependencies": {
+    "basscss": "^8.0.2",
     "elm": "^0.17.1",
     "express": "^4.14.0"
   }
