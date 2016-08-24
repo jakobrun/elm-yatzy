@@ -4,6 +4,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Dict exposing (Dict)
 import Dice
+import Calc
 import Random
 
 main =
@@ -64,17 +65,6 @@ scoreBoxLabel scoreBoxType =
     LargeStright -> "Large stright"
     FullHouse -> "Full house"
     _ -> toString scoreBoxType
-
-countSameNumer dices =
-  List.map .value dices
-  |> List.foldr
-    (\value newList ->
-      if List.map fst newList |> List.member value then
-        List.map (\pair -> if fst pair == value then (value, (snd pair) + 1) else pair) newList
-      else
-        (value, 1) :: newList
-    )
-    []
 
 init : (Model, Cmd Msg)
 init =
@@ -145,21 +135,24 @@ selectScoreBox box model =
   }
 
 calulateScoreBoxes model =
-  {model
-  | upperScoreBoxes = List.map (calculateScoreBox model.dices) model.upperScoreBoxes
-  , lowerScoreBoxes = List.map (calculateScoreBox model.dices) model.lowerScoreBoxes
-  }
-calculateScoreBox dices box =
+  let calcList = List.map (calculateScoreBox (List.map .value model.dices))
+  in
+    {model
+    | upperScoreBoxes = calcList model.upperScoreBoxes
+    , lowerScoreBoxes = calcList model.lowerScoreBoxes
+    }
+
+calculateScoreBox diceValues box =
   {box | score =
     (case box.boxType of
-      SameNumber value -> calculateSameNumber value dices
-      OfAKind value -> calculateXOfAKind value dices
-      TwoPairs -> calculateTwoPairs dices
-      FullHouse -> calculateFullHouse dices
-      SmallStright -> calculateSmallStright dices
-      LargeStright -> calculateLargeStright dices
-      Chance -> calculateChange dices
-      Yatzy -> calculateYatzy dices
+      SameNumber value -> Calc.sameNumber value diceValues
+      OfAKind value -> Calc.xOfAKind value diceValues
+      TwoPairs -> Calc.twoPairs diceValues
+      FullHouse -> Calc.fullHouse diceValues
+      SmallStright -> Calc.smallStright diceValues
+      LargeStright -> Calc.largeStright diceValues
+      Chance -> Calc.chance diceValues
+      Yatzy -> Calc.yatzy diceValues
     )
   }
 
@@ -216,64 +209,6 @@ calculateTotalForPlayer model player =
   (calculateTotalScoreBoxForPlayer model.upperScoreBoxes player) +
   (calculateBonusForPlayer model player) +
   (calculateTotalScoreBoxForPlayer model.lowerScoreBoxes player)
-
-calculateSameNumber value dices =
-  List.map .value dices
-  |> List.filter ((==) value)
-  |> List.sum
-
-calculateXOfAKind value dices =
-  case
-    (countSameNumer dices
-      |> List.filter ((<=) value << snd)
-      |> List.map ((*) value << fst)
-      |> List.maximum
-    ) of
-      Nothing -> 0
-      Just v -> v
-
-calculateTwoPairs dices =
-  let pairs =
-    countSameNumer dices
-      |> List.filter ((<=) 2 << snd)
-  in
-    if List.length pairs == 2 then
-      List.map ((*) 2 << fst) pairs |> List.sum
-    else
-      0
-
-calculateSmallStright dices =
-  let faceCount =
-    countSameNumer dices
-  in
-    if (List.length faceCount) == 5 && not (List.member 6 (List.map fst faceCount))
-    then 15 else 0
-
-calculateLargeStright dices =
-  let faceCount =
-    countSameNumer dices
-  in
-    if (List.length faceCount) == 5 && not (List.member 1 (List.map fst faceCount))
-    then 20 else 0
-
-calculateFullHouse dices =
-  let faceCount =
-    countSameNumer dices
-  in
-    if List.length faceCount == 2 &&
-        (case List.head faceCount of
-                Nothing -> 0
-                Just v -> snd v
-            ) >= 2
-    then
-      List.map .value dices |> List.sum
-    else
-      0
-
-calculateChange = List.sum << List.map .value
-
-calculateYatzy dices =
-  if countSameNumer dices |> List.length |> (==) 1 then 50 else 0
 
 -- SUBSCRIPTIONS
 
