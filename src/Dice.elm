@@ -30,7 +30,7 @@ toggleDice id dice =
 view : Bool -> Model -> Html Msg
 view diceDisabled dice =
   button
-    [ class ("dice rounded " ++ diceStyle dice)
+    [ class ("block dice rounded " ++ diceStyle dice)
     , Toggle dice.id |> onClick
     , disabled diceDisabled
     ]

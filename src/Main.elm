@@ -220,7 +220,7 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-  div []
+  div [class "flex"]
     [ div [class "paper p2 m2 inline-block"]
       [ h1 [] [text "YATZY"]
       , table []
@@ -242,13 +242,15 @@ view model =
         ]
         )
       ]
-    , div [class "flex"] (List.map (viewDice model) model.dices)
-    , button [ onClick RollDices, disabled (model.rollesLeft == 0)] [ text "Roll"]
-    , span []
-      [text (model.activePlayer ++
-        " has " ++
-        toString model.rollesLeft ++
-        " rolls left")
+    , div []
+      [ div []
+        [text (model.activePlayer ++
+          " has " ++
+          toString model.rollesLeft ++
+          " rolls left")
+        ]
+      , button [ onClick RollDices, disabled (model.rollesLeft == 0)] [ text "Roll"]
+      , div [] (List.map (viewDice model) model.dices)
       ]
     ]
 
