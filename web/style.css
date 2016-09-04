@@ -22,15 +22,15 @@ td, th {
 
 
 /******* Dice *********/
-.dice {
+.die {
   background-color: transparent;
   margin: 5px;
   padding: 5px;
 }
-.dice-loose {
+.die-loose {
   border: 2px solid transparent;
 }
-.dice-pinned {
+.die-pinned {
   border: 2px inset #eee;
 }
 .first-face {

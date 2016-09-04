@@ -3,7 +3,7 @@ import Html.App exposing (program)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Dict exposing (Dict)
-import Dice
+import Die
 import Calc
 import Random
 
@@ -37,7 +37,7 @@ type alias Player =
   }
 
 type alias Model =
-  { dices : List Dice.Model
+  { dice : List Die.Model
   , players: List Player
   , upperScoreBoxes: List ScoreBox
   , lowerScoreBoxes: List ScoreBox
@@ -69,11 +69,11 @@ scoreBoxLabel scoreBoxType =
 init : (Model, Cmd Msg)
 init =
   (Model
-    [ Dice.fromValue 1 1
-    , Dice.fromValue 1 2
-    , Dice.fromValue 1 3
-    , Dice.fromValue 1 4
-    , Dice.fromValue 1 5
+    [ Die.fromValue 1 1
+    , Die.fromValue 1 2
+    , Die.fromValue 1 3
+    , Die.fromValue 1 4
+    , Die.fromValue 1 5
     ]
     [ Player "Tina"
     , Player "MJ"
@@ -102,28 +102,28 @@ init =
 -- UPDATE
 
 type Msg
-  = RollDices
+  = RollDice
   | DiceResult (List Int)
-  | DiceMsg Dice.Msg
+  | DieMsg Die.Msg
   | SelectScoreBox ScoreBox
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    RollDices ->
-      (model, model.dices |> List.length |> rollNDices)
+    RollDice ->
+      (model, model.dice |> List.length |> rollNDice)
     DiceResult res ->
       ({model |
-        dices = List.map2 Dice.setValue model.dices res
+        dice = List.map2 Die.setValue model.dice res
       , rollesLeft = model.rollesLeft - 1
       } |> calulateScoreBoxes, Cmd.none)
-    DiceMsg dMsg ->
-        ({model | dices = List.map (Dice.update dMsg) model.dices}, Cmd.none)
+    DieMsg dMsg ->
+        ({model | dice = List.map (Die.update dMsg) model.dice}, Cmd.none)
     SelectScoreBox box ->
       (selectScoreBox box model |> moveToNextPlayer, Cmd.none)
 
-rollNDices: Int -> Cmd Msg
-rollNDices n =
+rollNDice: Int -> Cmd Msg
+rollNDice n =
   Random.generate DiceResult (Random.list n (Random.int 1 6))
 
 selectScoreBox box model =
@@ -135,7 +135,7 @@ selectScoreBox box model =
   }
 
 calulateScoreBoxes model =
-  let calcList = List.map (calculateScoreBox (List.map .value model.dices))
+  let calcList = List.map (calculateScoreBox (List.map .value model.dice))
   in
     {model
     | upperScoreBoxes = calcList model.upperScoreBoxes
@@ -159,7 +159,7 @@ calculateScoreBox diceValues box =
 moveToNextPlayer model =
   {model |
     rollesLeft = 3,
-    dices = List.map (\d -> {d | loose = True}) model.dices,
+    dice = List.map (\d -> {d | loose = True}) model.dice,
     activePlayer =
       case nextPlayer model.activePlayer model.players of
         Just player -> player.name
@@ -249,13 +249,13 @@ view model =
           toString model.rollesLeft ++
           " rolls left")
         ]
-      , button [ onClick RollDices, disabled (model.rollesLeft == 0)] [ text "Roll"]
-      , div [] (List.map (viewDice model) model.dices)
+      , button [ onClick RollDice, disabled (model.rollesLeft == 0)] [ text "Roll"]
+      , div [] (List.map (viewDice model) model.dice)
       ]
     ]
 
 viewDice model dice =
-  Html.App.map (DiceMsg) (Dice.view (model.rollesLeft == 3) dice)
+  Html.App.map (DieMsg) (Die.view (model.rollesLeft == 3) dice)
 
 viewUser player = th [class "border"] [text player.name]
 

@@ -1,4 +1,4 @@
-module Dice exposing (Model, fromValue, view, Msg, update, setValue)
+module Die exposing (Model, fromValue, view, Msg, update, setValue)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -15,31 +15,30 @@ type Msg
 fromValue value id = Model value id True
 
 update: Msg -> Model -> Model
-update msg dice =
+update msg die =
   case msg of
-    Toggle id -> toggleDice id dice
+    Toggle id -> toggleLoose id die
 
-setValue dice newValue =
-    if dice.loose then {dice | value = newValue} else dice
+setValue die newValue =
+    if die.loose then {die | value = newValue} else die
 
-toggleDice: Int -> Model -> Model
-toggleDice id dice =
-  if dice.id == id then {dice | loose = not dice.loose} else dice
+toggleLoose: Int -> Model -> Model
+toggleLoose id die =
+  if die.id == id then {die | loose = not die.loose} else die
 
 
 view : Bool -> Model -> Html Msg
-view diceDisabled dice =
+view dieDisabled die =
   button
-    [ class ("block dice rounded " ++ diceStyle dice)
-    , Toggle dice.id |> onClick
-    , disabled diceDisabled
+    [ class ("block die rounded " ++ dieStyle die)
+    , Toggle die.id |> onClick
+    , disabled dieDisabled
     ]
-    [ viewDiceValue dice.value]
+    [ viewValue die.value]
 
-diceStyle: Model -> String
-diceStyle dice = if dice.loose then "dice-loose" else "dice-pinned"
+dieStyle die = if die.loose then "die-loose" else "die-pinned"
 
-viewDiceValue value
+viewValue value
   = case value of
     1 -> div [class "first-face"] (viewPip 1)
     2 -> div [class "second-face"] (viewPip 2)
